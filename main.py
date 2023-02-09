@@ -1,12 +1,12 @@
 import os
 import time
-from typing import Optional, Callable, Tuple
+from typing import Optional, Callable, Tuple, List, Union
 
 import rich
 from rich.console import Console
 from rich.progress import track
 
-from valorant_api import get_current_mmr_data
+from valorant_api import get_current_mmr_data, get_mmr_history
 
 console: rich.console.Console = Console()
 
@@ -51,7 +51,7 @@ def _ask_user_for_account_data() -> Tuple[str, str, str]:
         console.print("[bold]You [red]need[/] to paste tagline![/]:", end=' ')
         user_tagline = str(input())
 
-    console.print("[bold][red]Region[/][/] [italic]choose [red]from[/]: eu, na, kr[/]:", end=' ')
+    console.print("[bold][red]Region[/][/] [italic]choose [red]from[/] (eu, na, kr)[/]:", end=' ')
     user_region: str = str(input())
     while user_region not in ('eu', 'na', 'kr'):
         console.print("[bold]Please choose region [red]from[/] (eu, na, kr):[/]", end=' ')
@@ -76,9 +76,17 @@ def _check_user_input(user_input: str):
             show_user_menu()
         else:
             _format_output(mode='current_mmr_data', data=result)
+    elif user_input == '2':
+        account_data: Tuple = _ask_user_for_account_data()
+        nickname, tagline, region = account_data[0], account_data[1], account_data[2]
+        result: List = get_mmr_history(user_name=nickname, tagline=tagline, region=region)
+        if not result:
+            show_user_menu()
+        else:
+            _format_output(mode='mmr_history', data=result)
 
 
-def _format_output(mode: str, data: tuple):
+def _format_output(mode: str, data: Union[List, Tuple]):
     """
     Printing formatted information for user in console
     :param: mode. The mode for output format in console.
@@ -105,6 +113,23 @@ def _format_output(mode: str, data: tuple):
             [/]
             """
         )
+    elif mode == 'mmr_history':
+        console.print()
+        won_games: int = 0
+        for _ in track(data, description='Loading data...'):
+            time.sleep(0.1)
+
+        for i_game in data:
+            if str(i_game[1]).startswith('-'):
+                console.print(f"[red]{i_game[0]}[/] | [red]{i_game[1]}[/]")
+            else:
+                won_games += 1
+                console.print(f"[green]{i_game[0]}[/] | [green][bold]+[/]{i_game[1]}[/]")
+            time.sleep(0.1)
+
+        console.print()
+        console.print(f'[bold]Games [green]WON[/]: [white]{won_games}[/][/]')
+        console.print(f'[bold]Games [red]LOST[/]: [white]{len(data) - won_games}[/][/]')
 
     _continue_working_with_cleaned_screen()
 

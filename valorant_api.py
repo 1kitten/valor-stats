@@ -43,5 +43,18 @@ def get_current_mmr_data(user_name: str, tagline: str, region: str) -> Optional[
     return
 
 
+def get_mmr_history(user_name: str, tagline: str, region: str):
+    url = f'https://api.henrikdev.xyz/valorant/v1/mmr-history/{region}/{user_name}/{tagline}'
+    result = _send_request(url)
+    if result:
+        try:
+            mmr_change_per_game = [(i_game['ranking_in_tier'], i_game['mmr_change_to_last_game']) for i_game in result]
+        except KeyError:
+            logger.error('Cannot get mmr history from games.')
+        else:
+            return mmr_change_per_game
+    return
+
+
 if __name__ == '__main__':
     ...
