@@ -5,6 +5,7 @@ from typing import Optional, Callable, Tuple, List, Union
 import rich
 from rich.console import Console
 from rich.progress import track
+from rich.table import Table
 
 from valorant_api import get_current_mmr_data, get_mmr_history
 
@@ -127,11 +128,30 @@ def _format_output(mode: str, data: Union[List, Tuple]):
                 console.print(f"[green]{i_game[0]}[/] | [green][bold]+[/]{i_game[1]}[/]")
             time.sleep(0.1)
 
-        console.print()
-        console.print(f'[bold]Games [green]WON[/]: [white]{won_games}[/][/]')
-        console.print(f'[bold]Games [red]LOST[/]: [white]{len(data) - won_games}[/][/]')
+        user_winrate = _get_winrate(total_games_played=len(data), games_won=won_games)
+        _create_table_for_match_history(winrate=user_winrate, total_games=len(data), won_games=won_games)
 
     _continue_working_with_cleaned_screen()
+
+
+def _create_table_for_match_history(winrate: float, won_games: int, total_games: int) -> None:
+    """
+    Printing overall stats from player games
+    :param winrate: (float) winrate of player
+    :param won_games: (int) total games won
+    :param total_games: (int) total games played
+    """
+    table = Table(title='Overall stats', style='bold')
+    table.add_column('Winrate %', style='bold')
+    table.add_column('Games [green]WON[/]')
+    table.add_column('Games [red]LOST[/]')
+    table.add_row(f"[bold][magenta]{winrate}%[/]", f"[bold][green]{won_games}[/]",
+                  f"[bold][red]{total_games - won_games}[/]")
+    console.print(table)
+
+
+def _get_winrate(total_games_played: int, games_won: int) -> float:
+    return round(100 * games_won / total_games_played)
 
 
 def _continue_working_with_cleaned_screen() -> None:
