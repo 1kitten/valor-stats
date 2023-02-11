@@ -56,5 +56,24 @@ def get_mmr_history(user_name: str, tagline: str, region: str):
     return
 
 
+def get_last_match_statistics(user_name: str, tagline: str, region: str):
+    url = f'https://api.henrikdev.xyz/valorant/v3/matches/{region}/{user_name}/{tagline}?filter=competitive'
+    result = _send_request(url)[0]
+    if result:
+        try:
+            match_data = {
+                "map_played": result['metadata']['map'],
+                "server": result['metadata']['cluster'],
+                "blue_team": [],
+                "red_team": []
+            }
+            print(match_data)
+        except KeyError:
+            logger.error('Cannot get data from the last played match')
+        else:
+            return match_data
+    return
+
+
 if __name__ == '__main__':
-    ...
+    get_last_match_statistics('aftrr', '000', 'eu')
