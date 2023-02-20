@@ -1,13 +1,17 @@
 import os
 import time
-from typing import Optional, Callable, Tuple, List, Union
+from typing import Optional, Callable, Tuple, List, Union, Dict
 
 import rich
 from rich.console import Console
 from rich.progress import track
 from rich.table import Table
 
-from valorant_api import get_current_mmr_data, get_mmr_history
+from valorant_api import (
+    get_current_mmr_data,
+    get_mmr_history,
+    get_last_match_statistics
+)
 
 console: rich.console.Console = Console()
 
@@ -66,28 +70,33 @@ def _check_user_input(user_input: str):
     Checking user input from console
     :param: user_input. The one option from console menu.
     """
+    account_data: Tuple = _ask_user_for_account_data()
+    nickname, tagline, region = account_data[0], account_data[1], account_data[2]
+
     if user_input == '4':
         console.print('[bold]Bye-bye :wave: [/]')
         exit(0)
     elif user_input == '1':
-        account_data: Tuple = _ask_user_for_account_data()
-        nickname, tagline, region = account_data[0], account_data[1], account_data[2]
-        result: Tuple = get_current_mmr_data(user_name=nickname, tagline=tagline, region=region)
-        if not result:
+        curr_mmr: Tuple = get_current_mmr_data(user_name=nickname, tagline=tagline, region=region)
+        if not curr_mmr:
             show_user_menu()
         else:
-            _format_output(mode='current_mmr_data', data=result)
+            _format_output(mode='current_mmr_data', data=curr_mmr)
     elif user_input == '2':
-        account_data: Tuple = _ask_user_for_account_data()
-        nickname, tagline, region = account_data[0], account_data[1], account_data[2]
-        result: List = get_mmr_history(user_name=nickname, tagline=tagline, region=region)
-        if not result:
+        mmr_hist: List = get_mmr_history(user_name=nickname, tagline=tagline, region=region)
+        if not mmr_hist:
             show_user_menu()
         else:
-            _format_output(mode='mmr_history', data=result)
+            _format_output(mode='mmr_history', data=mmr_hist)
+    else:
+        match_data = get_last_match_statistics(user_name=nickname, tagline=tagline, region=region)
+        if not match_data:
+            show_user_menu()
+        else:
+            _format_output(mode='match_data', data=match_data)
 
 
-def _format_output(mode: str, data: Union[List, Tuple]):
+def _format_output(mode: str, data: Union[List, Tuple, Dict]):
     """
     Printing formatted information for user in console
     :param: mode. The mode for output format in console.
@@ -130,6 +139,29 @@ def _format_output(mode: str, data: Union[List, Tuple]):
 
         user_winrate = _get_winrate(total_games_played=len(data), games_won=won_games)
         _create_table_for_match_history(winrate=user_winrate, total_games=len(data), won_games=won_games)
+    else:
+        console.print(
+            f"""
+            [bold][green]Map played:[/] {data.get('map_played')}
+            [yellow]Server:[/] {data.get('server')}[/]
+            """
+        )
+
+        console.print("[bold][blue]Blue Team:[/][/]")
+
+        for i_plr in data.get('blue_team'):
+            console.print(f"[bold][white]Nickname: {i_plr.get('nickname')}\n[/]"
+                          f"Agent: {i_plr.get('agent')}\n"
+                          f"Rank: {i_plr.get('rank')}\n"
+                          f"[violet]K/D/A: {i_plr.get('kda')}[/][/]\n")
+
+        console.print("[bold][red]Red Team:[/][/]")
+
+        for i_plr in data.get('red_team'):
+            console.print(f"[bold][white]Nickname: {i_plr.get('nickname')}\n[/]"
+                          f"Agent: {i_plr.get('agent')}\n"
+                          f"Rank: {i_plr.get('rank')}\n"
+                          f"[violet]K/D/A: {i_plr.get('kda')}[/][/]\n")
 
     _continue_working_with_cleaned_screen()
 

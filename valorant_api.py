@@ -64,15 +64,33 @@ def get_last_match_statistics(user_name: str, tagline: str, region: str):
             match_data = {
                 "map_played": result['metadata']['map'],
                 "server": result['metadata']['cluster'],
-                "blue_team": [],
-                "red_team": []
+                "blue_team": _get_players_from_match(result['players']['all_players'])[0],
+                "red_team": _get_players_from_match(result['players']['all_players'])[1]
             }
-            print(match_data)
         except KeyError:
             logger.error('Cannot get data from the last played match')
+            return
         else:
             return match_data
-    return
+
+
+def _get_players_from_match(players: dict):
+    blue_team = []
+    red_team = []
+    for i_player in players:
+        player_info = {
+            "nickname": f"{i_player.get('name')}#{i_player.get('tag')}",
+            "agent": i_player.get('character'),
+            "rank": i_player.get('currenttier_patched'),
+            "kda": f"{i_player.get('stats').get('kills')}"
+                   f"/{i_player.get('stats').get('deaths')}/{i_player.get('stats').get('assists')}"
+        }
+        if i_player.get('team') == 'Blue':
+            blue_team.append(player_info)
+        else:
+            red_team.append(player_info)
+
+    return blue_team, red_team
 
 
 if __name__ == '__main__':
